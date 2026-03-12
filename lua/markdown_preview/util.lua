@@ -92,4 +92,8 @@ function M.workspace_for_buffer(bufnr)
 	return vim.fs.joinpath(vim.fn.stdpath("cache"), "markdown-preview", hash)
 end
 
+function M.shared_workspace()
+	return vim.fs.joinpath(vim.fn.stdpath("cache"), "markdown-preview", "shared")
+end
+
 return M
