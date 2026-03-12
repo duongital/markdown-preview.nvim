@@ -6,8 +6,12 @@ local ls_server = require("live_server.server")
 local M = {}
 
 M.config = {
-	port = 0,
+	port = 0, -- 0 = auto; effective port depends on instance_mode
 	open_browser = true,
+
+	-- "takeover" = shared workspace + fixed port, one browser tab across instances
+	-- "multi" = per-instance server + browser tab (port 0 recommended)
+	instance_mode = "takeover",
 
 	content_name = "content.md",
 	index_name = "index.html",
@@ -43,6 +47,14 @@ M._debounce_seq = 0
 M._workspace_dir = nil
 M._mmdr_available = nil -- nil = unchecked, true/false after probe
 M._last_scroll_line = nil
+M._is_primary = nil      -- true/false/nil (takeover mode)
+M._takeover_port = nil   -- port of primary server (secondary uses for HTTP events)
+
+local function effective_port()
+	if M.config.port ~= 0 then return M.config.port end
+	if M.config.instance_mode == "takeover" then return 8421 end
+	return 0
+end
 
 ---------------------------------------------------------------------------
 -- Workspace
@@ -293,11 +305,12 @@ local function maybe_refresh(bufnr, silent)
 		return false
 	end
 
-	local dir = ensure_workspace(bufnr)
+	local dir = M._workspace_dir or ensure_workspace(bufnr)
 	write_content(dir, text)
 	M._last_text_by_buf[bufnr] = text
 
 	-- Notify live-server of the content change for immediate SSE push
+	-- In secondary takeover mode, M._server_instance is nil — fs_watch handles reload
 	if M._server_instance then
 		pcall(ls_server.reload, M._server_instance, M.config.content_name)
 	end
@@ -326,13 +339,16 @@ end
 --- Send cursor line to browser for scroll sync.
 local function send_scroll_sync(bufnr)
 	if not M.config.scroll_sync then return end
-	if not M._server_instance then return end
 	local cursor_line = vim.api.nvim_win_get_cursor(0)[1] -- 1-based
 	if cursor_line == M._last_scroll_line then return end
 	M._last_scroll_line = cursor_line
 	local total = vim.api.nvim_buf_line_count(bufnr)
 	local payload = vim.json.encode({ line = cursor_line - 1, total = total })
-	pcall(ls_server.send_event, M._server_instance, "scroll", payload)
+	if M._server_instance then
+		pcall(ls_server.send_event, M._server_instance, "scroll", payload)
+	elseif M._takeover_port then
+		require("markdown_preview.remote").send_event(M._takeover_port, "scroll", payload)
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -381,7 +397,15 @@ function M.start()
 		vim.notify("Markdown Preview: " .. tostring(text), vim.log.levels.ERROR)
 		return
 	end
-	local dir = ensure_workspace(bufnr)
+
+	-- Resolve workspace: shared (takeover) or per-buffer (multi)
+	local dir
+	if M.config.instance_mode == "takeover" then
+		dir = util.shared_workspace()
+	else
+		dir = ensure_workspace(bufnr)
+	end
+	util.mkdirp(dir)
 	M._workspace_dir = dir
 
 	write_index_if_needed(dir)
@@ -390,11 +414,26 @@ function M.start()
 
 	set_autocmds_for_buffer(bufnr)
 
+	-- In takeover mode, check if another instance already owns the server
+	if M.config.instance_mode == "takeover" and not M._server_instance then
+		local lock = require("markdown_preview.lock")
+		local lock_data = lock.read()
+		if lock_data and lock.is_server_alive(lock_data.port) then
+			-- Secondary mode: server already running in another Neovim instance
+			M._is_primary = false
+			M._takeover_port = lock_data.port
+			return
+		end
+		-- Stale lock or no lock — we become primary
+		lock.remove()
+	end
+
 	-- Start live-server if not already running
 	if not M._server_instance then
+		local port = effective_port()
 		local index_path = vim.fs.joinpath(dir, M.config.index_name)
 		local ok, inst = pcall(ls_server.start, {
-			port = M.config.port,
+			port = port,
 			root = dir,
 			default_index = index_path,
 			headers = { ["Cache-Control"] = "no-cache" },
@@ -408,12 +447,19 @@ function M.start()
 		})
 		if not ok then
 			vim.notify(
-				("Markdown Preview: failed to start server (port %s) — %s"):format(tostring(M.config.port), tostring(inst)),
+				("Markdown Preview: failed to start server (port %s) — %s"):format(tostring(port), tostring(inst)),
 				vim.log.levels.ERROR
 			)
 			return
 		end
 		M._server_instance = inst
+		M._is_primary = true
+		M._takeover_port = nil
+
+		-- Write lock file in takeover mode
+		if M.config.instance_mode == "takeover" then
+			require("markdown_preview.lock").write(inst.port, dir)
+		end
 
 		if M.config.open_browser then
 			vim.defer_fn(function()
@@ -452,8 +498,13 @@ function M.stop()
 		pcall(ls_server.stop, M._server_instance)
 		M._server_instance = nil
 	end
+	if M._is_primary then
+		require("markdown_preview.lock").remove()
+	end
 	M._workspace_dir = nil
 	M._last_scroll_line = nil
+	M._is_primary = nil
+	M._takeover_port = nil
 end
 
 return M
