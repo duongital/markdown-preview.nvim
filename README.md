@@ -27,7 +27,8 @@ Live **Markdown preview** for Neovim with first-class **Mermaid diagram** suppor
   config = function()
     require("markdown_preview").setup({
       -- all optional; sane defaults shown
-      port = 8421,
+      instance_mode = "takeover",  -- "takeover" (one tab) or "multi" (tab per instance)
+      port = 0,                    -- 0 = auto (8421 for takeover, OS-assigned for multi)
       open_browser = true,
       debounce_ms = 300,
     })
@@ -94,12 +95,13 @@ The preview opens a polished browser app with:
 
 ```lua
 require("markdown_preview").setup({
-  port = 8421,                          -- server port
+  instance_mode = "takeover",           -- "takeover" or "multi" (see below)
+  port = 0,                             -- 0 = auto (8421 for takeover, OS-assigned for multi)
   open_browser = true,                  -- auto-open browser on start
 
   content_name = "content.md",          -- workspace content file
   index_name = "index.html",            -- workspace HTML file
-  workspace_dir = nil,                  -- nil = per-buffer (recommended); set a path to override
+  workspace_dir = nil,                  -- nil = auto (shared for takeover, per-buffer for multi)
 
   overwrite_index_on_start = true,      -- copy plugin's index.html on every start
 
@@ -114,6 +116,16 @@ require("markdown_preview").setup({
 
   scroll_sync = true,                   -- browser follows cursor position
 })
+```
+
+### Instance modes
+
+**Takeover** (default) — all Neovim instances share a single workspace and browser tab. The first instance to run `:MarkdownPreview` becomes the primary (starts the server on port 8421). Subsequent instances become secondaries — they write content to the shared workspace, and the server's file watcher pushes a reload to the browser. Scroll sync works across instances via HTTP event injection.
+
+**Multi** — each instance gets its own server on an OS-assigned port and its own browser tab. Use this for side-by-side previews of different files.
+
+```lua
+require("markdown_preview").setup({ instance_mode = "multi" })
 ```
 
 ---
@@ -163,7 +175,8 @@ Rendered preview (scroll preserved, no flicker)
 - **Other files**: The mermaid block under the cursor is extracted (via Tree-sitter or regex fallback) and wrapped in a code fence
 - **SSE** (Server-Sent Events) from `live-server.nvim` push updates instantly — no polling
 - **morphdom** diffs the DOM efficiently, preserving scroll position and interactive state
-- **Per-buffer workspaces** under `~/.cache/nvim/markdown-preview/<hash>/` prevent collisions between Neovim instances
+- **Takeover mode** shares a single workspace (`~/.cache/nvim/markdown-preview/shared/`) and browser tab across all Neovim instances via a lock file
+- **Multi mode** uses per-buffer workspaces under `~/.cache/nvim/markdown-preview/<hash>/` with independent servers
 
 ---
 
@@ -194,7 +207,11 @@ Browser-side libraries are loaded from CDN (cached by your browser):
 - Invalid diagrams show the last good render + error message
 
 **Port conflict**
-- Stop with `:MarkdownPreviewStop`, change `port` in config, restart with `:MarkdownPreview`
+- In takeover mode, stop the other instance first or change the port: `port = 9999`
+- In multi mode, ports are auto-assigned — conflicts shouldn't happen
+
+**Stale lock file (takeover mode)**
+- If Neovim crashes, the lock file may persist. The next `:MarkdownPreview` detects the dead server and automatically takes over
 
 ---
 
@@ -202,11 +219,13 @@ Browser-side libraries are loaded from CDN (cached by your browser):
 
 ```
 markdown-preview.nvim/
-├─ plugin/markdown-preview.lua       -- commands + keymaps
+├─ plugin/markdown-preview.lua       -- commands
 ├─ lua/markdown_preview/
-│  ├─ init.lua                       -- main logic (server, refresh, workspace)
+│  ├─ init.lua                       -- main logic (server, refresh, workspace, instance modes)
 │  ├─ util.lua                       -- fs helpers, workspace resolution
-│  └─ ts.lua                         -- Tree-sitter mermaid extractor + fallback
+│  ├─ ts.lua                         -- Tree-sitter mermaid extractor + fallback
+│  ├─ lock.lua                       -- lock file management (takeover mode coordination)
+│  └─ remote.lua                     -- HTTP event injection (secondary scroll sync)
 └─ assets/
    └─ index.html                     -- browser preview app
 ```
