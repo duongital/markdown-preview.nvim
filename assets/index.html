@@ -357,30 +357,6 @@
             margin: 1em 0 .4em;
         }
 
-        /* Heading anchor links */
-        #content .header-anchor {
-            color: var(--fg-muted);
-            text-decoration: none;
-            opacity: 0;
-            transition: opacity .15s;
-            margin-right: .3em;
-            font-weight: 400;
-        }
-
-        #content h1:hover .header-anchor,
-        #content h2:hover .header-anchor,
-        #content h3:hover .header-anchor,
-        #content h4:hover .header-anchor,
-        #content h5:hover .header-anchor,
-        #content h6:hover .header-anchor {
-            opacity: .6;
-        }
-
-        #content .header-anchor:hover {
-            opacity: 1 !important;
-            color: var(--link);
-            text-decoration: none;
-        }
 
         /* Paragraphs & text */
         #content p {
@@ -989,12 +965,7 @@
         if (window.markdownitFootnote) md.use(window.markdownitFootnote);
         if (window.markdownItAnchor) {
             md.use(window.markdownItAnchor, {
-                permalink: window.markdownItAnchor.permalink.linkInsideHeader({
-                    symbol: '#',
-                    placement: 'before',
-                    class: 'header-anchor',
-                    ariaHidden: true,
-                }),
+                permalink: false,
                 slugify: (s) => s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, ''),
             });
         }
