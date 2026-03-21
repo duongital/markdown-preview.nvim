@@ -829,6 +829,7 @@
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-emoji@3.0.0/dist/markdown-it-emoji.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-footnote@4.0.0/dist/markdown-it-footnote.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it-task-lists@2.1.1/dist/markdown-it-task-lists.min.js"></script>
     <script src="https://unpkg.com/markdown-it-anchor@9.2.0/dist/markdownItAnchor.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.js"></script>
@@ -963,6 +964,7 @@
         md.use(markdownItGithubAlerts);
         if (window.markdownitEmoji) md.use(window.markdownitEmoji);
         if (window.markdownitFootnote) md.use(window.markdownitFootnote);
+        if (window.markdownItTaskLists) md.use(window.markdownItTaskLists, { enabled: false });
         if (window.markdownItAnchor) {
             md.use(window.markdownItAnchor, {
                 permalink: false,
