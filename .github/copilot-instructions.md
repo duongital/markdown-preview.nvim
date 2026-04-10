@@ -1,3 +1,5 @@
+[toc]
+
 # Copilot Instructions
 
 ## Project overview
@@ -13,6 +15,7 @@ No automated test suite. Testing is manual:
 3. For **multi mode**: set `instance_mode = "multi"` in setup; each instance opens its own tab
 4. Test scroll sync by moving the cursor — browser should follow
 5. Test `:MarkdownPreviewStop` — server stops, lock file cleaned up (takeover primary only)
+6. Test **TOC sidebar**: add `[toc]` to a `.md` file with multiple headings — a sticky sidebar should appear on the left 1/3; removing `[toc]` should revert to single-column layout
 
 ## Architecture
 
@@ -27,9 +30,14 @@ Neovim (Lua)  →  writes content.md to workspace dir
 
 **SSE events:** `reload` (content changed), `scroll` (cursor line sync)
 
+### Browser layout
+
+- The header is `position: fixed` — always visible regardless of scroll position.
+- When the rendered markdown contains a `[toc]` token, `markdown-it-toc-done-right` emits a `<nav class="table-of-contents">`. After each morphdom update, `extractTOC()` moves that nav into `<aside id="toc-sidebar">` and adds `has-toc` to `#page-layout`, activating a flex layout: sidebar 1/3 (sticky below header), content 2/3. Without `[toc]`, the sidebar is hidden and the normal centered single-column layout is used.
+
 ### Instance modes
 
-- **takeover** (default): shared workspace at `stdpath("cache")/markdown-preview/shared`, fixed port 8421. First Neovim instance is *primary* (runs the server and writes a lock file). Subsequent instances are *secondary* — they write `content.md` directly; live-server's `fs_watch` triggers the SSE reload. Secondary instances send scroll events via `remote.lua`'s HTTP injection endpoint (`GET /__live/inject`).
+- **takeover** (default): shared workspace at `stdpath("cache")/markdown-preview/shared`, fixed port 8421. First Neovim instance is _primary_ (runs the server and writes a lock file). Subsequent instances are _secondary_ — they write `content.md` directly; live-server's `fs_watch` triggers the SSE reload. Secondary instances send scroll events via `remote.lua`'s HTTP injection endpoint (`GET /__live/inject`).
 - **multi**: each instance runs its own server on an OS-assigned port (port 0). Separate browser tab per instance.
 
 ### Key live-server.nvim APIs

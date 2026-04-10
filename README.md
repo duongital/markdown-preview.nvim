@@ -9,6 +9,7 @@ Live **Markdown preview** for Neovim with first-class **Mermaid diagram** suppor
 - **Instant updates** via Server-Sent Events (no polling) with **scroll sync** — browser follows your cursor
 - **LaTeX math** — inline `$...$` and display `$$...$$` rendered via KaTeX
 - **Syntax highlighting** for code blocks (highlight.js)
+- **TOC sidebar** — add `[toc]` anywhere in your file to get a sticky 1/3-width table of contents with active-heading highlighting
 - Dark / Light theme toggle with colored heading accents
 - **Optional Rust-powered rendering** — use [`mermaid-rs-renderer`](https://github.com/mermaid-rs/mermaid-rs-renderer) for ~400x faster mermaid diagrams
 - **Zero external dependencies** — no npm, no Node.js, just Neovim + your browser
@@ -78,6 +79,7 @@ vim.keymap.set("n", "<leader>mpr", "<cmd>MarkdownPreviewRefresh<cr>", { desc = "
 The preview opens a polished browser app with:
 
 - **Full Markdown rendering** — GitHub-flavored styling with colored heading borders, lists, tables, blockquotes, code, images, links, horizontal rules
+- **TOC sidebar** — place `[toc]` anywhere in the markdown to activate a sticky 1/3-width sidebar with a table of contents; the sidebar highlights the active heading as you scroll and collapses to a top strip on narrow screens; without `[toc]` the normal single-column layout is used
 - **Syntax-highlighted code blocks** — powered by highlight.js, with language badges
 - **Interactive Mermaid diagrams** — rendered inline as SVGs:
   - Hover a diagram to reveal the **expand button**
