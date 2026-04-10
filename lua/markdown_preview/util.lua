@@ -96,4 +96,63 @@ function M.shared_workspace()
 	return vim.fs.joinpath(vim.fn.stdpath("cache"), "markdown-preview", "shared")
 end
 
+---Return the parent directory of the buffer's file path (absolute).
+---@param bufnr integer
+---@return string|nil
+function M.buf_src_dir(bufnr)
+	local name = vim.api.nvim_buf_get_name(bufnr)
+	if not name or name == "" then return nil end
+	local abs = vim.fn.fnamemodify(name, ":p:h")
+	if abs == "" then return nil end
+	return abs
+end
+
+---Copy local image files referenced in markdown text into <workspace>/files/
+---so the live-server can serve them at /files/<rel_path> without needing to
+---follow symlinks that point outside its root directory.
+---@param workspace_dir string
+---@param src_dir string|nil absolute path to the markdown file's parent directory
+---@param text string markdown content to scan for image references
+function M.sync_local_images(workspace_dir, src_dir, text)
+	if not src_dir or src_dir == "" then return end
+	local files_dir = vim.fs.joinpath(workspace_dir, "files")
+
+	-- Remove legacy symlink if present so we can use a real directory
+	local lstat = vim.loop.fs_lstat(files_dir)
+	if lstat and lstat.type == "link" then
+		vim.loop.fs_unlink(files_dir)
+		lstat = nil
+	end
+	if not lstat then
+		M.mkdirp(files_dir)
+	end
+
+	-- Extract image paths from markdown: ![alt](path) or ![alt](path "title")
+	for raw in text:gmatch("!%[.-%]%((.-)%)") do
+		local path = raw:match("^(%S+)") or raw
+		-- Skip remote/absolute/anchor references
+		if path ~= ""
+			and not path:match("^https?://")
+			and not path:match("^//")
+			and not path:match("^data:")
+			and not path:match("^/")
+			and not path:match("^#")
+		then
+			local rel = path:gsub("^%./", "")
+			local src = vim.fs.joinpath(src_dir, rel)
+			local dst = vim.fs.joinpath(files_dir, rel)
+			if M.file_exists(src) then
+				local src_stat = vim.loop.fs_stat(src)
+				local dst_stat = vim.loop.fs_stat(dst)
+				-- Only copy if destination is missing or source is newer
+				if not dst_stat or (src_stat and src_stat.mtime.sec > dst_stat.mtime.sec) then
+					M.mkdirp(dirname(dst))
+					-- fs_copyfile handles binary files (images, gifs, etc.) correctly
+					vim.loop.fs_copyfile(src, dst)
+				end
+			end
+		end
+	end
+end
+
 return M

@@ -269,6 +269,22 @@
         md.renderer.rules.table_open = injectLineNumbers;
         md.renderer.rules.blockquote_open = injectLineNumbers;
 
+        // Rewrite relative image src to /files/<path> so the live-server
+        // can serve them from the markdown file's own directory (via symlink).
+        md.renderer.rules.image = function (tokens, idx, options, env, self) {
+            const token = tokens[idx];
+            const srcIdx = token.attrIndex('src');
+            if (srcIdx >= 0) {
+                const src = token.attrs[srcIdx][1];
+                if (src && !/^(https?:\/\/|\/\/|\/|data:|#)/.test(src)) {
+                    token.attrs[srcIdx][1] = '/files/' + src.replace(/^\.\//, '');
+                }
+            }
+            token.attrs[token.attrIndex('alt')][1] =
+                self.renderInlineAsText(token.children, options, env);
+            return self.renderToken(tokens, idx, options);
+        };
+
         // Override fence renderer to handle mermaid specially
         const defaultFence = md.renderer.rules.fence;
         md.renderer.rules.fence = function (tokens, idx, options, env, self) {

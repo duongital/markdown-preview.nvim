@@ -6,6 +6,8 @@
 
 Neovim plugin for live Markdown preview in the browser. Pure Lua, no npm/Node. Depends on [`live-server.nvim`](https://github.com/selimacerbas/live-server.nvim) — a sibling repo that may be edited in the same session.
 
+![image](./mermaid.gif)
+
 ## Testing
 
 No automated test suite. Testing is manual:

@@ -313,6 +313,7 @@ local function maybe_refresh(bufnr, silent)
 
 	local dir = M._workspace_dir or ensure_workspace(bufnr)
 	write_content(dir, text)
+	pcall(util.sync_local_images, dir, util.buf_src_dir(bufnr), text)
 	M._last_text_by_buf[bufnr] = text
 
 	-- Notify live-server of the content change for immediate SSE push
@@ -417,6 +418,7 @@ function M.start()
 	write_index_if_needed(dir)
 	write_content(dir, text)
 	M._last_text_by_buf[bufnr] = text
+	pcall(util.sync_local_images, dir, util.buf_src_dir(bufnr), text)
 
 	set_autocmds_for_buffer(bufnr)
 
