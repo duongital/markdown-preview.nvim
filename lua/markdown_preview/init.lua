@@ -84,6 +84,12 @@ local function write_index(dir)
 		error("Could not locate assets/index.html in runtimepath. Make sure the plugin ships it.")
 	end
 	util.copy_file(src, dst)
+
+	local css_src = util.resolve_asset("assets/index.css")
+	if css_src then
+		util.copy_file(css_src, vim.fs.joinpath(dir, "index.css"))
+	end
+
 	return dst
 end
 

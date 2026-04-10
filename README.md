@@ -22,7 +22,7 @@ Live **Markdown preview** for Neovim with first-class **Mermaid diagram** suppor
 
 ```lua
 {
-  "selimacerbas/markdown-preview.nvim",
+  "duongital/markdown-preview.nvim",
   dependencies = { "selimacerbas/live-server.nvim" },
   config = function()
     require("markdown_preview").setup({
