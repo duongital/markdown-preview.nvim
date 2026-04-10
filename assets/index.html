@@ -84,7 +84,7 @@
         <div id="overlay-panzoom"></div>
     </div>
 
-    <!-- CDN deps: markdown-it, morphdom, highlight.js, emoji, footnote, anchor -->
+    <!-- CDN deps: markdown-it, morphdom, highlight.js, emoji, footnote, anchor, toc -->
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/morphdom@2/dist/morphdom-umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
@@ -92,6 +92,7 @@
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-footnote@4.0.0/dist/markdown-it-footnote.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-task-lists@2.1.1/dist/markdown-it-task-lists.min.js"></script>
     <script src="https://unpkg.com/markdown-it-anchor@9.2.0/dist/markdownItAnchor.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it-toc-done-right@4.2.0/dist/markdownItTocDoneRight.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-front-matter@0.2.4/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.28/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-texmath@1.0.0/texmath.js"></script>
@@ -231,6 +232,12 @@
         if (window.markdownItAnchor) {
             md.use(window.markdownItAnchor, {
                 permalink: false,
+                slugify: (s) => s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, ''),
+            });
+        }
+        if (window.markdownItTocDoneRight) {
+            md.use(window.markdownItTocDoneRight, {
+                listType: 'ul',
                 slugify: (s) => s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, ''),
             });
         }
