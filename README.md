@@ -1,5 +1,8 @@
 # markdown-preview.nvim
 
+<img width="1013" height="913" alt="image" src="https://github.com/user-attachments/assets/7f7b9999-7c8c-4d23-b9ff-4c0e025951fa" />
+
+
 > **Note:** This repository was previously known as `mermaid-playground.nvim`. It has been renamed and rewritten to support full Markdown preview alongside first-class Mermaid diagram support.
 
 Live **Markdown preview** for Neovim with first-class **Mermaid diagram** support.
